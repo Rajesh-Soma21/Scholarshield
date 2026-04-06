@@ -1,0 +1,98 @@
+{
+  "models": [
+    "naive_bayes",
+    "logistic_regression",
+    "decision_tree",
+    "svm"
+  ],
+  "display_names": {
+    "naive_bayes": "Naive Bayes",
+    "logistic_regression": "Logistic Regression",
+    "decision_tree": "Decision Tree",
+    "svm": "SVM (LinearSVC)"
+  },
+  "results": {
+    "Naive Bayes": {
+      "accuracy": 100.0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1_score": 100.0,
+      "cv_mean": 100.0,
+      "cv_std": 0.0
+    },
+    "Logistic Regression": {
+      "accuracy": 100.0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1_score": 100.0,
+      "cv_mean": 100.0,
+      "cv_std": 0.0
+    },
+    "Decision Tree": {
+      "accuracy": 100.0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1_score": 100.0,
+      "cv_mean": 100.0,
+      "cv_std": 0.0
+    },
+    "SVM (LinearSVC)": {
+      "accuracy": 100.0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1_score": 100.0,
+      "cv_mean": 100.0,
+      "cv_std": 0.0
+    }
+  },
+  "confusion_matrices": {
+    "Naive Bayes": [
+      [
+        11,
+        0
+      ],
+      [
+        0,
+        10
+      ]
+    ],
+    "Logistic Regression": [
+      [
+        11,
+        0
+      ],
+      [
+        0,
+        10
+      ]
+    ],
+    "Decision Tree": [
+      [
+        11,
+        0
+      ],
+      [
+        0,
+        10
+      ]
+    ],
+    "SVM (LinearSVC)": [
+      [
+        11,
+        0
+      ],
+      [
+        0,
+        10
+      ]
+    ]
+  },
+  "dataset_size": 101,
+  "train_size": 80,
+  "test_size": 21,
+  "feature_method": "TF-IDF (unigrams + bigrams, max 5000 features)",
+  "label_mapping": {
+    "0": "REAL",
+    "1": "FAKE"
+  }
+}

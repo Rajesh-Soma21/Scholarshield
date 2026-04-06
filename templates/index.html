@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScholarShield — AI Scholarship Fraud Detector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ─── VARIABLES ─────────────────────────────────────────────── */
+:root {
+  --bg:       #050a14;
+  --surf:     #0b1526;
+  --surf2:    #111e34;
+  --surf3:    #1a2d4a;
+  --border:   #1d3557;
+  --cyan:     #00e5ff;
+  --green:    #00ff9d;
+  --amber:    #ffb300;
+  --red:      #ff4444;
+  --purple:   #b47aff;
+  --text:     #e8f4fd;
+  --muted:    #7a95b4;
+  --r-shadow: 0 4px 24px rgba(0,0,0,.45);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.6;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+
+/* ─── NAV ───────────────────────────────────────────────────── */
+nav{border-bottom:1px solid var(--border);padding:15px 0;position:sticky;top:0;
+    background:rgba(5,10,20,.96);backdrop-filter:blur(14px);z-index:100}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1120px;margin:0 auto;padding:0 24px}
+.logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.5px;display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--cyan),var(--green));border-radius:8px;display:grid;place-items:center;font-size:16px}
+.logo span{color:var(--cyan)}
+.nav-right{display:flex;align-items:center;gap:14px}
+.nav-badge{font-family:'Space Mono',monospace;font-size:10px;color:var(--green);border:1px solid var(--green);padding:3px 10px;border-radius:20px;letter-spacing:1.5px;opacity:.8}
+.nav-status{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.status-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+
+/* ─── HERO ───────────────────────────────────────────────────── */
+.hero{padding:72px 0 56px;text-align:center}
+.hero-chip{display:inline-flex;align-items:center;gap:8px;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.25);color:var(--cyan);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2.5px;padding:6px 18px;border-radius:20px;margin-bottom:28px;text-transform:uppercase}
+.hero-chip::before{content:'';width:6px;height:6px;background:var(--cyan);border-radius:50%;animation:pulse 2s infinite}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(36px,5.5vw,64px);font-weight:800;line-height:1.06;letter-spacing:-2px;margin-bottom:20px}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:17px;color:var(--muted);max-width:540px;margin:0 auto 48px;line-height:1.7}
+.stats-row{display:flex;justify-content:center;gap:48px;flex-wrap:wrap;padding-top:48px;border-top:1px solid var(--border)}
+.stat-item{text-align:center}
+.stat-num{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:var(--cyan);display:block}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px}
+
+/* ─── SECTION LABEL ──────────────────────────────────────────── */
+.section-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--cyan);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ─── FORM CARD ──────────────────────────────────────────────── */
+.form-section{padding:0 0 56px}
+.card{background:var(--surf);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--r-shadow)}
+.card-header{padding:18px 26px;background:var(--surf2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.dots{display:flex;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%}
+.dot-r{background:#ff5f57}.dot-y{background:#ffbd2e}.dot-g{background:#28c840}
+.card-title{font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);margin-left:6px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:24px}
+.form-grid .span2{grid-column:1/-1}
+.field label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:7px;font-family:'Space Mono',monospace}
+.field input,.field textarea,.field select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:11px 15px;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;transition:border-color .2s,box-shadow .2s;outline:none;-webkit-appearance:none}
+.field textarea{resize:vertical;min-height:96px}
+.field input:focus,.field textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,229,255,.08)}
+.field input::placeholder,.field textarea::placeholder{color:#2d4a6a}
+.form-footer{padding:18px 26px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.form-hint{font-size:13px;color:var(--muted)}
+.form-hint span{color:var(--green);font-weight:500}
+
+/* ─── BUTTONS ─────────────────────────────────────────────────── */
+.btn-primary{display:inline-flex;align-items:center;gap:9px;background:linear-gradient(135deg,#007acc,#00b4d8);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:15px;letter-spacing:.4px;padding:12px 28px;border-radius:10px;border:none;cursor:pointer;transition:transform .2s,box-shadow .2s,opacity .2s;box-shadow:0 4px 20px rgba(0,180,216,.3)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,180,216,.4)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-outline{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--border);color:var(--text);font-size:13px;font-family:'Inter',sans-serif;padding:9px 18px;border-radius:8px;cursor:pointer;transition:border-color .2s,background .2s}
+.btn-outline:hover{border-color:var(--cyan);background:rgba(0,229,255,.05)}
+.btn-cyan{border-color:rgba(0,229,255,.35);color:var(--cyan);background:rgba(0,229,255,.07)}
+.btn-cyan:hover{background:rgba(0,229,255,.15)}
+
+/* ─── SCANNING ────────────────────────────────────────────────── */
+.scanning{display:none;padding:56px 28px;text-align:center}
+.scanning.active{display:block}
+.scan-ring{width:88px;height:88px;border:3px solid var(--border);border-top-color:var(--cyan);border-right-color:var(--green);border-radius:50%;margin:0 auto 24px;animation:spin 1.1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scan-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px}
+.scan-steps{display:flex;flex-direction:column;gap:9px;max-width:320px;margin:24px auto 0}
+.scan-step{display:flex;align-items:center;gap:12px;background:var(--surf2);padding:10px 16px;border-radius:8px;text-align:left;font-size:13px;color:var(--muted);border:1px solid transparent;transition:all .3s}
+.scan-step.active{color:var(--cyan);border-color:rgba(0,229,255,.25);animation:stepPulse .9s ease infinite}
+.scan-step.done{color:var(--green);border-color:rgba(0,255,157,.2)}
+@keyframes stepPulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* ─── RESULTS SECTION ─────────────────────────────────────────── */
+#results{display:none;padding:0 0 80px}
+#results.active{display:block}
+
+/* Ensemble verdict card */
+.verdict-card{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:28px 32px;margin-bottom:22px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center}
+.verdict-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--verd-color,var(--cyan)),transparent)}
+.verdict-chip{display:inline-flex;align-items:center;gap:8px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:4px 14px;border-radius:20px;margin-bottom:10px;border:1px solid;color:var(--verd-color,var(--cyan));border-color:var(--verd-color,var(--cyan));background:color-mix(in srgb,var(--verd-color,var(--cyan)) 10%,transparent)}
+.verdict-title{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;letter-spacing:-1px;margin-bottom:8px;color:var(--verd-color,var(--cyan))}
+.verdict-sub{font-size:14px;color:var(--muted);max-width:480px;line-height:1.65}
+.vote-pills{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.vote-pill{display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid}
+.vote-real{background:rgba(0,255,157,.07);border-color:rgba(0,255,157,.3);color:var(--green)}
+.vote-fake{background:rgba(255,68,68,.07);border-color:rgba(255,68,68,.3);color:var(--red)}
+
+/* Confidence ring */
+.conf-ring-wrap{position:relative;width:120px;height:120px;flex-shrink:0}
+.conf-ring-wrap svg{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--border);stroke-width:8}
+.ring-fill{fill:none;stroke-width:8;stroke-linecap:round;stroke-dasharray:283;stroke-dashoffset:283;transition:stroke-dashoffset 1.2s cubic-bezier(.16,1,.3,1)}
+.conf-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.conf-pct{font-family:'Syne',sans-serif;font-size:25px;font-weight:800;line-height:1}
+.conf-lbl{font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+
+/* Model cards grid */
+.models-grid-title{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.models-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:22px}
+.model-card{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .2s,transform .2s;position:relative;overflow:hidden}
+.model-card:hover{border-color:rgba(0,229,255,.2);transform:translateY(-2px)}
+.model-card.agrees-fake{border-color:rgba(255,68,68,.35)}
+.model-card.agrees-real{border-color:rgba(0,255,157,.35)}
+.model-card::after{content:attr(data-icon);position:absolute;bottom:10px;right:14px;font-size:40px;opacity:.06}
+.mc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.mc-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
+.mc-badge{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:1px}
+.badge-fake{background:rgba(255,68,68,.12);color:var(--red);border:1px solid rgba(255,68,68,.3)}
+.badge-real{background:rgba(0,255,157,.1);color:var(--green);border:1px solid rgba(0,255,157,.25)}
+.mc-conf{font-size:26px;font-weight:800;font-family:'Syne',sans-serif;margin-bottom:12px}
+.mc-meta{display:flex;gap:14px;flex-wrap:wrap}
+.mc-meta-item{font-size:11px;color:var(--muted)}
+.mc-meta-item span{color:var(--text);font-weight:600}
+.mc-bar-wrap{margin-top:12px}
+.mc-bar-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px}
+.bar-track{background:var(--surf3);border-radius:99px;height:5px;overflow:hidden}
+.bar-fill{height:100%;border-radius:99px;width:0%;transition:width 1s cubic-bezier(.16,1,.3,1)}
+
+/* Risk + Flags */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:22px}
+.panel{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:20px}
+.panel-title{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.score-bars{display:flex;flex-direction:column;gap:12px}
+.score-bar-item label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px}
+.score-bar-item label span{color:var(--text);font-weight:500}
+.flag-list{display:flex;flex-direction:column;gap:9px}
+.flag-item{display:flex;align-items:flex-start;gap:9px;padding:9px 13px;border-radius:8px;font-size:13px;line-height:1.5;border:1px solid}
+.flag-item.danger{background:rgba(255,68,68,.08);border-color:rgba(255,68,68,.2);color:#ffaaaa}
+.flag-item.warn{background:rgba(255,179,0,.07);border-color:rgba(255,179,0,.2);color:#ffd77a}
+.flag-item.safe{background:rgba(0,255,157,.06);border-color:rgba(0,255,157,.2);color:#7affcc}
+.flag-icon{font-size:13px;flex-shrink:0;margin-top:1px}
+
+/* Action row */
+.action-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:4px}
+
+/* ─── MODELS INFO SECTION ─────────────────────────────────────── */
+.models-info-section{padding:60px 0;border-top:1px solid var(--border)}
+.section-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
+.section-desc{color:var(--muted);font-size:14px;margin-bottom:36px}
+.algo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:36px}
+.algo-card{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .2s,transform .2s;text-align:center}
+.algo-card:hover{border-color:rgba(0,229,255,.25);transform:translateY(-3px)}
+.algo-icon{font-size:28px;margin-bottom:10px}
+.algo-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:6px}
+.algo-acc{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;margin-bottom:4px}
+.algo-f1{font-size:12px;color:var(--muted)}
+.algo-cv{font-size:11px;color:var(--muted);margin-top:6px;font-family:'Space Mono',monospace}
+
+/* Dataset info */
+.dataset-panel{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:24px}
+.ds-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.ds-stat{text-align:center}
+.ds-num{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--cyan);display:block;margin-bottom:4px}
+.ds-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.ds-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.ds-tag{font-family:'Space Mono',monospace;font-size:10px;padding:4px 12px;border-radius:99px;border:1px solid var(--border);color:var(--muted);background:var(--surf2)}
+
+/* ─── MODULES SECTION ────────────────────────────────────────── */
+.modules-section{padding:0 0 80px;border-top:1px solid var(--border)}
+.modules-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px}
+.module-card{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:22px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s}
+.module-card:hover{border-color:rgba(0,229,255,.25);transform:translateY(-3px)}
+.module-card::before{content:attr(data-num);position:absolute;top:12px;right:16px;font-family:'Syne',sans-serif;font-size:46px;font-weight:800;color:rgba(255,255,255,.025);line-height:1}
+.mod-icon{width:38px;height:38px;border-radius:9px;display:grid;place-items:center;font-size:17px;margin-bottom:12px}
+.module-card h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:6px}
+.module-card p{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* ─── HISTORY ────────────────────────────────────────────────── */
+.history-section{padding:0 0 80px}
+.hist-list{display:flex;flex-direction:column;gap:9px}
+.hist-empty{text-align:center;padding:28px;color:var(--muted);font-size:14px;border:1px dashed var(--border);border-radius:12px}
+.hist-item{display:flex;align-items:center;gap:14px;background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:12px 18px;cursor:pointer;transition:border-color .2s}
+.hist-item:hover{border-color:rgba(0,229,255,.2)}
+.hist-badge{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;letter-spacing:1px;flex-shrink:0}
+.hist-name{font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-votes{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);flex-shrink:0}
+.hist-time{font-size:11px;color:var(--muted);flex-shrink:0}
+
+/* ─── RESULTS CHART ──────────────────────────────────────────── */
+.chart-section{padding:60px 0;border-top:1px solid var(--border)}
+.chart-img{width:100%;border-radius:12px;border:1px solid var(--border)}
+
+/* ─── FOOTER ─────────────────────────────────────────────────── */
+footer{border-top:1px solid var(--border);padding:24px 0;text-align:center;font-size:13px;color:var(--muted)}
+footer strong{color:var(--cyan)}
+
+/* ─── TOAST ──────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:26px;right:26px;background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:13px 18px;border-radius:10px;font-size:13px;box-shadow:var(--r-shadow);z-index:999;transform:translateY(70px);opacity:0;transition:all .3s;max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ─── RESPONSIVE ──────────────────────────────────────────────── */
+@media(max-width:900px){.algo-grid{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}.models-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.form-grid{grid-template-columns:1fr}.modules-grid{grid-template-columns:1fr 1fr}.verdict-card{grid-template-columns:1fr}.ds-grid{grid-template-columns:1fr 1fr}.stats-row{gap:24px}}
+@media(max-width:480px){.modules-grid,.algo-grid{grid-template-columns:1fr}.hero h1{font-size:32px;letter-spacing:-1px}}
+
+/* ─── FADE-IN ────────────────────────────────────────────────── */
+.fade-in{opacity:0;transform:translateY(18px);animation:fadeIn .5s ease forwards}
+@keyframes fadeIn{to{opacity:1;transform:translateY(0)}}
+.d1{animation-delay:.08s}.d2{animation-delay:.16s}.d3{animation-delay:.24s}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <div class="logo">
+      <div class="logo-icon">🛡️</div>
+      Scholar<span>Shield</span>
+    </div>
+    <div class="nav-right">
+      <div class="nav-status"><span class="status-dot"></span>
+        {{ models_loaded }}/{{ total_models }} Models Active
+      </div>
+      <span class="nav-badge">ML POWERED</span>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-chip fade-in">4-Model Ensemble Detection System</div>
+    <h1 class="fade-in d1">Detect <em>Fake Scholarships</em><br>with Machine Learning</h1>
+    <p class="fade-in d2">ScholarShield runs <strong style="color:var(--text)">Naive Bayes, Logistic Regression, Decision Tree and SVM</strong> simultaneously — then uses majority voting to protect students from fraud.</p>
+    <div class="stats-row fade-in d3">
+      <div class="stat-item"><span class="stat-num">4</span><span class="stat-label">ML Models</span></div>
+      <div class="stat-item"><span class="stat-num">{{ meta.dataset_size or 101 }}</span><span class="stat-label">Training Records</span></div>
+      <div class="stat-item"><span class="stat-num">TF-IDF</span><span class="stat-label">Feature Method</span></div>
+      <div class="stat-item"><span class="stat-num">Vote</span><span class="stat-label">Ensemble Strategy</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FORM SECTION -->
+<section class="form-section">
+  <div class="wrap">
+    <div class="section-label">Scholarship Analyzer</div>
+    <div class="card fade-in">
+      <div class="card-header">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <span class="card-title">scholarship_detector.py — input</span>
+      </div>
+
+      <!-- INPUT FORM -->
+      <div id="form-view">
+        <div class="form-grid">
+          <div class="field"><label>Scholarship Name *</label>
+            <input type="text" id="sch-name" placeholder="e.g. National Merit Scholarship 2025"></div>
+          <div class="field"><label>Provider / Organization *</label>
+            <input type="text" id="sch-provider" placeholder="e.g. Ministry of Education, Govt. of India"></div>
+          <div class="field span2"><label>Description *</label>
+            <textarea id="sch-desc" placeholder="Paste the full scholarship description here. The more detail, the better the analysis..."></textarea></div>
+          <div class="field"><label>Official Website URL</label>
+            <input type="text" id="sch-url" placeholder="https://scholarships.gov.in"></div>
+          <div class="field"><label>Contact Email</label>
+            <input type="text" id="sch-email" placeholder="contact@organization.gov.in"></div>
+          <div class="field"><label>Application Fee</label>
+            <input type="text" id="sch-fee" placeholder="e.g. None / ₹500 / $20"></div>
+          <div class="field"><label>Scholarship Amount</label>
+            <input type="text" id="sch-amount" placeholder="e.g. ₹50,000 per year"></div>
+        </div>
+        <div class="form-footer">
+          <p class="form-hint">Fields marked <span>*</span> required. More info = higher accuracy.</p>
+          <button class="btn-primary" id="analyze-btn" onclick="startAnalysis()">
+            <span>🔍</span> Run All 4 Models
+          </button>
+        </div>
+      </div>
+
+      <!-- SCANNING -->
+      <div class="scanning" id="scan-view">
+        <div class="scan-ring"></div>
+        <div class="scan-title">Running ML Pipeline…</div>
+        <p style="color:var(--muted);font-size:13px">Executing all 4 models + ensemble vote</p>
+        <div class="scan-steps" id="scan-steps">
+          <div class="scan-step" id="s0"><span>📥</span> Loading input data</div>
+          <div class="scan-step" id="s1"><span>🧹</span> Text preprocessing + TF-IDF</div>
+          <div class="scan-step" id="s2"><span>📊</span> Naive Bayes inference</div>
+          <div class="scan-step" id="s3"><span>📈</span> Logistic Regression inference</div>
+          <div class="scan-step" id="s4"><span>🌳</span> Decision Tree inference</div>
+          <div class="scan-step" id="s5"><span>⚡</span> SVM inference</div>
+          <div class="scan-step" id="s6"><span>🗳️</span> Majority vote + ensemble result</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section id="results">
+  <div class="wrap">
+    <div class="section-label">Analysis Results</div>
+
+    <!-- Ensemble verdict -->
+    <div class="verdict-card" id="verdict-card">
+      <div>
+        <div class="verdict-chip" id="verdict-chip">Ensemble Verdict</div>
+        <div class="verdict-title" id="verdict-title">—</div>
+        <div class="verdict-sub" id="verdict-sub">—</div>
+        <div class="vote-pills" id="vote-pills"></div>
+      </div>
+      <div class="conf-ring-wrap">
+        <svg viewBox="0 0 100 100" width="120" height="120">
+          <circle class="ring-bg" cx="50" cy="50" r="45"/>
+          <circle class="ring-fill" id="ring-fill" cx="50" cy="50" r="45"/>
+        </svg>
+        <div class="conf-center">
+          <span class="conf-pct" id="conf-pct">0%</span>
+          <span class="conf-lbl">Ensemble</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 Model Cards -->
+    <div class="models-grid-title">Individual Model Predictions</div>
+    <div class="models-grid" id="model-cards"></div>
+
+    <!-- Risk bars + Flags -->
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-title">📉 Risk Indicators</div>
+        <div class="score-bars" id="score-bars"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">🚩 Detection Flags</div>
+        <div class="flag-list" id="flag-list"></div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="action-row">
+      <button class="btn-primary" onclick="checkAnother()">🔄 Check Another</button>
+      <button class="btn-outline btn-cyan" onclick="copyReport()">📋 Copy Report</button>
+    </div>
+  </div>
+</section>
+
+<!-- ML MODELS INFO -->
+<section class="models-info-section">
+  <div class="wrap">
+    <div class="section-label">ML Models</div>
+    <div class="section-title">Four Models. One Verdict.</div>
+    <div class="section-desc">Each model analyses the scholarship independently. Majority vote decides the final classification.</div>
+
+    <div class="algo-grid" id="algo-grid">
+      {% set model_data = [
+        ('Naive Bayes', '📊', '#00e5ff', meta_stats.get('Naive Bayes', {})),
+        ('Logistic Regression', '📈', '#00ff9d', meta_stats.get('Logistic Regression', {})),
+        ('Decision Tree', '🌳', '#ffb300', meta_stats.get('Decision Tree', {})),
+        ('SVM (LinearSVC)', '⚡', '#b47aff', meta_stats.get('SVM (LinearSVC)', {}))
+      ] %}
+      {% for name, icon, color, stats in model_data %}
+      <div class="algo-card fade-in">
+        <div class="algo-icon">{{ icon }}</div>
+        <div class="algo-name">{{ name }}</div>
+        <div class="algo-acc" style="color:{{ color }}">{{ stats.get('accuracy', '—') }}%</div>
+        <div class="algo-f1">F1-Score: {{ stats.get('f1_score', '—') }}%</div>
+        <div class="algo-cv">CV: {{ stats.get('cv_mean', '—') }}% ± {{ stats.get('cv_std', '—') }}%</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Dataset info -->
+    <div class="section-label" style="margin-top:36px">Dataset</div>
+    <div class="dataset-panel">
+      <div class="ds-grid">
+        <div class="ds-stat"><span class="ds-num">{{ meta.dataset_size or 101 }}</span><span class="ds-label">Total Records</span></div>
+        <div class="ds-stat"><span class="ds-num" style="color:var(--green)">{{ meta.train_size or 80 }}</span><span class="ds-label">Training Set</span></div>
+        <div class="ds-stat"><span class="ds-num" style="color:var(--amber)">{{ meta.test_size or 21 }}</span><span class="ds-label">Test Set</span></div>
+      </div>
+      <div class="ds-tags">
+        <span class="ds-tag">scholarship_name</span>
+        <span class="ds-tag">provider</span>
+        <span class="ds-tag">description</span>
+        <span class="ds-tag">url</span>
+        <span class="ds-tag">contact_email</span>
+        <span class="ds-tag">application_fee</span>
+        <span class="ds-tag">amount</span>
+        <span class="ds-tag">label (REAL/FAKE)</span>
+        <span class="ds-tag">TF-IDF unigrams+bigrams</span>
+        <span class="ds-tag">5000 features</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS CHART -->
+<section class="chart-section">
+  <div class="wrap">
+    <div class="section-label">Performance Report</div>
+    <div class="section-title">Model Evaluation Results</div>
+    <div class="section-desc">Confusion matrices and performance metrics across all 4 models.</div>
+    <img src="/static/img/ml_results.png" alt="ML Results Chart" class="chart-img fade-in">
+  </div>
+</section>
+
+<!-- SYSTEM MODULES -->
+<section class="modules-section">
+  <div class="wrap">
+    <div class="section-label">System Modules</div>
+    <div class="section-title">6-Module Architecture</div>
+    <div class="modules-grid">
+      <div class="module-card fade-in" data-num="01"><div class="mod-icon" style="background:rgba(0,229,255,.1)">📥</div><h3>User Interface</h3><p>Web form accepting scholarship name, provider, description, URL, email, fee, and amount for analysis.</p></div>
+      <div class="module-card fade-in d1" data-num="02"><div class="mod-icon" style="background:rgba(0,255,157,.1)">🗄️</div><h3>Data Collection</h3><p>Dataset with 101 labeled records from government portals (NSP, AICTE, UGC) and known fraud patterns.</p></div>
+      <div class="module-card fade-in d2" data-num="03"><div class="mod-icon" style="background:rgba(255,179,0,.1)">🧹</div><h3>Preprocessing</h3><p>Text cleaning, field combining, TF-IDF vectorization (unigrams + bigrams, 5000 max features).</p></div>
+      <div class="module-card fade-in d3" data-num="04"><div class="mod-icon" style="background:rgba(180,100,255,.1)">🔑</div><h3>Feature Extraction</h3><p>TF-IDF transforms combined text into numerical feature vectors capturing keyword importance per document.</p></div>
+      <div class="module-card fade-in d1" data-num="05"><div class="mod-icon" style="background:rgba(0,180,255,.1)">🧠</div><h3>ML Models (×4)</h3><p>Naive Bayes, Logistic Regression, Decision Tree and SVM each independently classify the scholarship.</p></div>
+      <div class="module-card fade-in d2" data-num="06"><div class="mod-icon" style="background:rgba(255,68,68,.1)">📊</div><h3>Prediction & Voting</h3><p>Majority vote across 4 models produces final verdict (REAL/FAKE/SUSPICIOUS) with confidence score.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HISTORY -->
+<section class="history-section">
+  <div class="wrap">
+    <div class="section-label">Recent Checks</div>
+    <div class="hist-list" id="hist-list">
+      <div class="hist-empty">No checks yet — analyze a scholarship above to see history here.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <p>ScholarShield — Fake Scholarship Detection System &nbsp;|&nbsp; <strong>Divya (U18IW23S0016)</strong> &nbsp;|&nbsp; ML Project 2025</p>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const history = [];
+let lastResult = null;
+let lastInput  = null;
+
+/* ─── ANALYSIS FLOW ──────────────────────────────────────── */
+async function startAnalysis() {
+  const name     = id('sch-name').value.trim();
+  const provider = id('sch-provider').value.trim();
+  const desc     = id('sch-desc').value.trim();
+  if (!name || !provider || !desc) { showToast('⚠️ Fill in Scholarship Name, Provider and Description.'); return; }
+
+  id('form-view').style.display = 'none';
+  id('scan-view').classList.add('active');
+  id('results').style.display = 'none';
+  id('results').classList.remove('active');
+
+  await animateSteps();
+
+  const payload = {
+    scholarship_name: name, provider, description: desc,
+    url:              id('sch-url').value.trim(),
+    contact_email:    id('sch-email').value.trim(),
+    application_fee:  id('sch-fee').value.trim(),
+    amount:           id('sch-amount').value.trim(),
+  };
+
+  try {
+    const res = await fetch('/predict', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Prediction failed');
+    lastResult = data.result;
+    lastInput  = data.input;
+    displayResults(data.result, name);
+  } catch(e) {
+    showToast('❌ Error: ' + e.message);
+    id('scan-view').classList.remove('active');
+    id('form-view').style.display = 'block';
+  }
+}
+
+/* ─── STEP ANIMATION ──────────────────────────────────────── */
+async function animateSteps() {
+  const icons = ['📥','🧹','📊','📈','🌳','⚡','🗳️'];
+  const steps = 7;
+  for (let i = 0; i < steps; i++) {
+    if (i > 0) {
+      const prev = id(`s${i-1}`);
+      prev.classList.remove('active'); prev.classList.add('done');
+      prev.children[0].textContent = '✅';
+    }
+    id(`s${i}`).classList.add('active');
+    await sleep(420 + Math.random()*260);
+  }
+  id(`s${steps-1}`).classList.remove('active'); id(`s${steps-1}`).classList.add('done'); id(`s${steps-1}`).children[0].textContent = '✅';
+  await sleep(250);
+  for (let i = 0; i < steps; i++) { const s=id(`s${i}`); s.classList.remove('active','done'); s.children[0].textContent=icons[i]; }
+  id('scan-view').classList.remove('active');
+  id('form-view').style.display = 'block';
+}
+
+/* ─── DISPLAY RESULTS ────────────────────────────────────── */
+function displayResults(r, name) {
+  const lbl  = r.ensemble_label;
+  const col  = lbl==='FAKE' ? 'var(--red)' : lbl==='REAL' ? 'var(--green)' : 'var(--amber)';
+  const icon = lbl==='FAKE' ? '🚫' : lbl==='REAL' ? '✅' : '⚠️';
+
+  // Verdict card
+  const vc = id('verdict-card');
+  vc.style.setProperty('--verd-color', col);
+  id('verdict-chip').textContent = 'Ensemble Verdict';
+  id('verdict-chip').style.setProperty('--verd-color', col);
+  id('verdict-title').textContent = `${icon} ${lbl==='FAKE'?'Fraudulent Scholarship':lbl==='REAL'?'Legitimate Scholarship':'Suspicious — Verify Carefully'}`;
+  id('verdict-title').style.color = col;
+  const fakeV = r.votes_fake, realV = r.votes_real, tot = r.votes_total;
+  id('verdict-sub').textContent = `${fakeV} of ${tot} models flagged this as FAKE, ${realV} as REAL. ${lbl==='FAKE'?'High likelihood of fraud — do not proceed.':lbl==='REAL'?'Appears legitimate based on all indicators.':'Conflicting signals — verify through official channels.'}`;
+  id('vote-pills').innerHTML = `
+    <div class="vote-pill vote-fake">🚫 FAKE · ${fakeV} vote${fakeV!==1?'s':''}</div>
+    <div class="vote-pill vote-real">✅ REAL · ${realV} vote${realV!==1?'s':''}</div>`;
+
+  // Confidence ring
+  const pct = r.ensemble_conf;
+  id('conf-pct').textContent = pct + '%';
+  id('conf-pct').style.color = col;
+  const ring = id('ring-fill');
+  ring.style.stroke = col;
+  requestAnimationFrame(() => { ring.style.strokeDashoffset = 283 - (283*pct/100); });
+
+  // Model cards
+  const cards = id('model-cards');
+  cards.innerHTML = '';
+  for (const [key, p] of Object.entries(r.predictions)) {
+    const isFake = p.label === 'FAKE';
+    const pCol = isFake ? 'var(--red)' : 'var(--green)';
+    const div = document.createElement('div');
+    div.className = `model-card ${isFake?'agrees-fake':'agrees-real'}`;
+    div.dataset.icon = p.icon;
+    div.innerHTML = `
+      <div class="mc-top">
+        <div class="mc-name">${p.icon} ${p.display_name}</div>
+        <span class="mc-badge ${isFake?'badge-fake':'badge-real'}">${p.label}</span>
+      </div>
+      <div class="mc-conf" style="color:${pCol}">${p.confidence}%</div>
+      <div class="mc-meta">
+        <div class="mc-meta-item">Train Acc <span>${p.train_acc}%</span></div>
+        <div class="mc-meta-item">F1 <span>${p.train_f1}%</span></div>
+        <div class="mc-meta-item">CV <span>${p.cv_mean}%</span></div>
+      </div>
+      <div class="mc-bar-wrap">
+        <div class="mc-bar-lbl"><span>Confidence</span><span>${p.confidence}%</span></div>
+        <div class="bar-track"><div class="bar-fill" data-val="${p.confidence}" style="background:${pCol};width:0%"></div></div>
+      </div>`;
+    cards.appendChild(div);
+  }
+
+  // Score bars
+  const text = [lastInput?.scholarship_name, lastInput?.provider, lastInput?.description,
+                lastInput?.url, lastInput?.contact_email, lastInput?.application_fee].join(' ').toLowerCase();
+  const kwRisk  = Math.min(100, (r.suspicious_kws?.length || 0) * 16 + (lbl==='FAKE'?20:0));
+  const urlTrust= text.includes('.gov')||text.includes('.edu')||text.includes('.ac.')?85:text.includes('blogspot')||text.includes('weebly')||text.includes('.tk')?10:35;
+  const feeRisk = lastInput?.application_fee && !lastInput.application_fee.toLowerCase().match(/none|free|no|nil|zero/) && lastInput.application_fee.match(/[0-9₹$£€]/) ? 90 : 5;
+  const credScore= (r.safe_kws?.length||0)*14 + (urlTrust>60?20:0);
+
+  id('score-bars').innerHTML = barHTML('Keyword Risk', kwRisk, kwRisk>60?'var(--red)':kwRisk>30?'var(--amber)':'var(--green)')
+    + barHTML('URL Trustworthiness', urlTrust, urlTrust>60?'var(--green)':urlTrust>30?'var(--amber)':'var(--red)')
+    + barHTML('Fee Risk', feeRisk, feeRisk>60?'var(--red)':feeRisk>20?'var(--amber)':'var(--green)')
+    + barHTML('Provider Credibility', Math.min(100,credScore), credScore>50?'var(--green)':credScore>25?'var(--amber)':'var(--red)');
+
+  // Flags
+  id('flag-list').innerHTML = (r.flags||[]).map(f=>`
+    <div class="flag-item ${f.type}">
+      <span class="flag-icon">${f.type==='danger'?'🔴':f.type==='warn'?'🟡':'🟢'}</span>
+      <span>${f.text}</span>
+    </div>`).join('');
+
+  // Animate bars after insert
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.bar-fill[data-val]').forEach(b=>{ b.style.width = b.dataset.val+'%'; });
+  });
+
+  // Show results
+  id('results').classList.add('active');
+  id('results').style.display = 'block';
+  id('results').scrollIntoView({behavior:'smooth',block:'start'});
+
+  // History
+  const now = new Date();
+  const time = now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const badgeClass = lbl==='REAL'?'badge-real':lbl==='FAKE'?'badge-fake':'badge-sus';
+  history.unshift({name, label:lbl, conf:pct, fakeV, realV, time, badgeClass});
+  renderHistory();
+}
+
+function barHTML(label, val, color) {
+  return `<div class="score-bar-item">
+    <label>${label} <span>${val}%</span></label>
+    <div class="bar-track"><div class="bar-fill" data-val="${val}" style="background:${color};width:0%"></div></div>
+  </div>`;
+}
+
+/* ─── HISTORY ────────────────────────────────────────────── */
+function renderHistory() {
+  const el = id('hist-list');
+  if (!history.length) { el.innerHTML='<div class="hist-empty">No checks yet.</div>'; return; }
+  el.innerHTML = history.map(h=>`
+    <div class="hist-item">
+      <span class="hist-badge ${h.badgeClass}">${h.label}</span>
+      <span class="hist-name">${h.name}</span>
+      <span class="hist-votes">F:${h.fakeV} R:${h.realV}</span>
+      <span class="hist-conf">${h.conf}%</span>
+      <span class="hist-time">${h.time}</span>
+    </div>`).join('');
+}
+
+/* ─── HELPERS ────────────────────────────────────────────── */
+function checkAnother() {
+  id('results').style.display='none'; id('results').classList.remove('active');
+  ['sch-name','sch-provider','sch-desc','sch-url','sch-email','sch-fee','sch-amount'].forEach(i=>id(i).value='');
+  document.querySelector('.form-section').scrollIntoView({behavior:'smooth'});
+}
+function copyReport() {
+  if (!lastResult) return;
+  const preds = Object.values(lastResult.predictions).map(p=>`  [${p.label}] ${p.display_name} — ${p.confidence}% confidence`).join('\n');
+  const flags = (lastResult.flags||[]).map(f=>`  [${f.type.toUpperCase()}] ${f.text}`).join('\n');
+  const text = `ScholarShield Analysis Report\n${'='.repeat(40)}\nScholarship: ${lastInput?.scholarship_name||''}\nProvider: ${lastInput?.provider||''}\n\nENSEMBLE VERDICT: ${lastResult.ensemble_label} (${lastResult.ensemble_conf}% confidence)\nVotes: ${lastResult.votes_fake} FAKE, ${lastResult.votes_real} REAL\n\nINDIVIDUAL MODEL PREDICTIONS:\n${preds}\n\nDETECTION FLAGS:\n${flags}\n\nGenerated by ScholarShield — ML-Powered Scholarship Fraud Detector`;
+  navigator.clipboard.writeText(text).then(()=>showToast('📋 Report copied!')).catch(()=>showToast('Copy failed.'));
+}
+function showToast(msg) {
+  const t=id('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+function id(i){ return document.getElementById(i); }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+</script>
+</body>
+</html>
